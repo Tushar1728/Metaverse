@@ -31,12 +31,11 @@ export default class GameScene extends Phaser.Scene {
 
     create() {
 
-        // Create map
         const map = this.make.tilemap({
             key: "office"
         });
 
-        // Connect tilesets
+        // Tilesets
         const officeTileset = map.addTilesetImage(
             "Rasak_Office",
             "Rasak_Office"
@@ -52,7 +51,7 @@ export default class GameScene extends Phaser.Scene {
             "Rasak_Decoration"
         );
 
-        // Create map layer
+        // Office map
         this.layer = map.createLayer(
             "Tile Layer 1",
             [
@@ -65,22 +64,58 @@ export default class GameScene extends Phaser.Scene {
         );
 
 
-        // Create player
-        this.player = this.add.image(
+        // Player
+        this.player = this.physics.add.image(
             720,
             480,
             "player"
         );
 
-        // Make player roughly one tile
         this.player.setDisplaySize(48, 48);
 
 
         // Keyboard
         this.cursors = this.input.keyboard.createCursorKeys();
 
+        this.keys = this.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W,
+            down: Phaser.Input.Keyboard.KeyCodes.S,
+            left: Phaser.Input.Keyboard.KeyCodes.A,
+            right: Phaser.Input.Keyboard.KeyCodes.D
+        });
 
-        // Camera boundaries
+
+        // Collision objects from Tiled
+        const collisionObjects = map.getObjectLayer("Collision");
+
+        this.collisionGroup = this.physics.add.staticGroup();
+
+
+        collisionObjects.objects.forEach((object) => {
+
+            const collision = this.collisionGroup.create(
+                object.x + object.width / 2,
+                object.y + object.height / 2,
+                null
+            );
+
+            collision.setSize(
+                object.width,
+                object.height
+            );
+
+            collision.setVisible(false);
+        });
+
+
+        // Player vs environment
+        this.physics.add.collider(
+            this.player,
+            this.collisionGroup
+        );
+
+
+        // Camera
         this.cameras.main.setBounds(
             0,
             0,
@@ -88,27 +123,47 @@ export default class GameScene extends Phaser.Scene {
             map.heightInPixels
         );
 
-        // Camera follows player
         this.cameras.main.startFollow(this.player);
     }
 
 
     update() {
 
-        if (this.cursors.left.isDown) {
-            this.player.x -= 1.5;
+        let velocityX = 0;
+        let velocityY = 0;
+
+        // Horizontal
+        if (this.cursors.left.isDown || this.keys.left.isDown) {
+            velocityX = -150;
+        }
+        else if (this.cursors.right.isDown || this.keys.right.isDown) {
+            velocityX = 150;
         }
 
-        if (this.cursors.right.isDown) {
-            this.player.x += 1.5;
+        // Vertical
+        if (this.cursors.up.isDown || this.keys.up.isDown) {
+            velocityY = -150;
+        }
+        else if (this.cursors.down.isDown || this.keys.down.isDown) {
+            velocityY = 150;
         }
 
-        if (this.cursors.up.isDown) {
-            this.player.y -= 1.5;
+
+        // Prevent diagonal movement from being faster
+        if (velocityX !== 0 && velocityY !== 0) {
+            const length = Math.sqrt(
+                velocityX * velocityX +
+                velocityY * velocityY
+            );
+
+            velocityX = (velocityX / length) * 150;
+            velocityY = (velocityY / length) * 150;
         }
 
-        if (this.cursors.down.isDown) {
-            this.player.y += 1.5;
-        }
+
+        this.player.setVelocity(
+            velocityX,
+            velocityY
+        );
     }
 }
