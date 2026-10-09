@@ -1,0 +1,14 @@
+{ "columns":16,
+ "image":"Tileset_Modern_House_Decoration_Rasak.png",
+ "imageheight":768,
+ "imagewidth":768,
+ "margin":0,
+ "name":"Rasak_Decoration",
+ "spacing":0,
+ "tilecount":256,
+ "tiledversion":"1.12.2",
+ "tileheight":48,
+ "tilewidth":48,
+ "type":"tileset",
+ "version":"1.10"
+}
