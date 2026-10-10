@@ -26,7 +26,10 @@ export default class GameScene extends Phaser.Scene {
         this.load.image("Rasak_Decoration", decorationTiles);
 
         // Player
-        this.load.image("player", playerImg);
+        this.load.spritesheet("player", playerImg, {
+            frameWidth: 48,
+            frameHeight: 48
+        });
     }
 
     create() {
@@ -65,13 +68,75 @@ export default class GameScene extends Phaser.Scene {
 
 
         // Player
-        this.player = this.physics.add.image(
+        this.player = this.physics.add.sprite(
             720,
             480,
             "player"
         );
 
+        this.anims.create({
+            key: "walk-down",
+            frames: this.anims.generateFrameNumbers("player", {
+                start: 0,
+                end: 3
+            }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: "walk-up",
+            frames: this.anims.generateFrameNumbers("player", {
+                start: 4,
+                end: 7
+            }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: "walk-left",
+            frames: this.anims.generateFrameNumbers("player", {
+                start: 8,
+                end: 11
+            }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: "walk-right",
+            frames: this.anims.generateFrameNumbers("player", {
+                start: 12,
+                end: 15
+            }),
+            frameRate: 8,
+            repeat: -1
+        });
+
         this.player.setDisplaySize(48, 48);
+
+        this.playerName = this.add.text(
+            this.player.x,
+            this.player.y - 34,
+            "Tushar",
+            {
+                fontFamily: "Arial",
+                fontSize: "12px",
+                color: "#ffffff",
+                backgroundColor: "rgba(0, 0, 0, 0.65)",
+                padding: {
+                    left: 6,
+                    right: 6,
+                    top: 3,
+                    bottom: 3
+                },
+                align: "center"
+            }
+        );
+
+        this.playerName.setOrigin(0.5, 1);
+        this.playerName.setResolution(2);
 
 
         // Keyboard
@@ -124,6 +189,7 @@ export default class GameScene extends Phaser.Scene {
         );
 
         this.cameras.main.startFollow(this.player);
+
     }
 
 
@@ -164,6 +230,31 @@ export default class GameScene extends Phaser.Scene {
         this.player.setVelocity(
             velocityX,
             velocityY
+        );
+
+            //---------------------------
+            // PLAYER ANIMATION
+            //---------------------------
+
+            if (velocityX === 0 && velocityY === 0) {
+                this.player.anims.stop();
+            }
+            else if (velocityY < 0) {
+                this.player.anims.play("walk-up", true);
+            }
+            else if (velocityY > 0) {
+                this.player.anims.play("walk-down", true);
+            }
+            else if (velocityX < 0) {
+                this.player.anims.play("walk-left", true);
+            }
+            else if (velocityX > 0) {
+                this.player.anims.play("walk-right", true);
+            }
+
+        this.playerName.setPosition(
+            this.player.x,
+            this.player.y - 32
         );
     }
 }
