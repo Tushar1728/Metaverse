@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import { createRoom, roomExists } from "./rooms/roomManager.js";
 import {
     addPlayer,
+    getPlayer,
     getPlayersInRoom,
     removePlayer
 } from "./players/playerManager.js";
@@ -21,8 +22,40 @@ const io = new Server(httpServer, {
 io.on("connection", (socket) => {
     console.log("Player connected:", socket.id);
 
+    socket.on("player-move", (data) => {
+        const player = getPlayer(socket.id);
+
+        if (!player) {
+            return;
+        }
+
+        player.x = data.x;
+        player.y = data.y;
+
+        socket.to(player.roomCode).emit("player-moved", {
+            playerId: socket.id,
+            x: player.x,
+            y: player.y
+        });
+    });
+
     socket.on("disconnect", () => {
-        console.log("Player disconnected:", socket.id);
+        const player = getPlayer(socket.id);
+
+        if (!player) {
+            console.log("Player disconnected:", socket.id);
+            return;
+        }
+
+        removePlayer(socket.id);
+
+        socket.to(player.roomCode).emit("player-disconnected", {
+            playerId: socket.id
+        });
+
+        console.log(
+            `${socket.id} left room ${player.roomCode}`
+        );
     });
 
     socket.on("create-room", (callback) => {
@@ -49,12 +82,16 @@ io.on("connection", (socket) => {
             return;
         }
 
-        socket.join(roomCode);
-
         const existingPlayers = getPlayersInRoom(roomCode);
 
+        socket.join(roomCode);
+
+        addPlayer(socket.id, roomCode);
+
+        const player = getPlayer(socket.id);
+
         socket.to(roomCode).emit("player-joined", {
-            playerId: socket.id
+            player: player
         });
 
         callback({

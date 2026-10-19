@@ -40,37 +40,27 @@ export default class GameScene extends Phaser.Scene {
 
     create() {
 
-        socket.on("player-joined", (data) => {
-            console.log("New player joined:", data.playerId);
-
-            const remotePlayer = new RemotePlayer(this, {
-                x: 720,
-                y: 480
-            });
-
-            this.remotePlayers.set(data.playerId, remotePlayer);
-        });
-
+        
         const map = this.make.tilemap({
             key: "office"
         });
-
+        
         // Tilesets
         const officeTileset = map.addTilesetImage(
             "Rasak_Office",
             "Rasak_Office"
         );
-
+        
         const furnitureTileset = map.addTilesetImage(
             "Rasak_Furnitures",
             "Rasak_Furnitures"
         );
-
+        
         const decorationTileset = map.addTilesetImage(
             "Rasak_Decoration",
             "Rasak_Decoration"
         );
-
+        
         // Office map
         this.layer = map.createLayer(
             "Tile Layer 1",
@@ -82,19 +72,62 @@ export default class GameScene extends Phaser.Scene {
             0,
             0
         );
-
-
+        
+        
         // Player
         this.player = this.physics.add.sprite(
             720,
             480,
             "player"
         );
-
+        
         this.remotePlayers = new Map();
+        
+        socket.on("player-joined", (data) => {
 
+            console.log("PLAYER JOINED DATA:", data);
+            
+            console.log("New player joined:", data.player);
+
+            const remotePlayer = new RemotePlayer(
+                this,
+                data.player
+            );
+
+            this.remotePlayers.set(
+                data.player.id,
+                remotePlayer
+            );
+        });
+
+        socket.on("player-moved", (data) => {
+            const remotePlayer = this.remotePlayers.get(data.playerId);
+
+            if (!remotePlayer) {
+                return;
+            }
+
+            remotePlayer.updatePosition(
+                data.x,
+                data.y
+            );
+        });
+
+
+        socket.on("player-disconnected", (data) => {
+            const remotePlayer = this.remotePlayers.get(data.playerId);
+
+            if (!remotePlayer) {
+                return;
+            }
+
+            remotePlayer.destroy();
+
+            this.remotePlayers.delete(data.playerId);
+        });
+        
         const gameState = getGameState();
-
+        
         console.log("Game state:", gameState);
 
         console.log(
@@ -175,7 +208,6 @@ export default class GameScene extends Phaser.Scene {
         this.playerName.setOrigin(0.5, 1);
         this.playerName.setResolution(2);
 
-
         // Keyboard
         this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -185,7 +217,6 @@ export default class GameScene extends Phaser.Scene {
             left: Phaser.Input.Keyboard.KeyCodes.A,
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
-
 
         // Collision objects from Tiled
         const collisionObjects = map.getObjectLayer("Collision");
@@ -293,5 +324,10 @@ export default class GameScene extends Phaser.Scene {
             this.player.x,
             this.player.y - 32
         );
+
+        socket.emit("player-move", {
+            x: this.player.x,
+            y: this.player.y
+        });
     }
 }
