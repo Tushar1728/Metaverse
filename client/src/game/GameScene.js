@@ -80,69 +80,13 @@ export default class GameScene extends Phaser.Scene {
             480,
             "player"
         );
+
+        this.playerDirection = "down";
+
+        this.lastMoveSent = 0;
+        this.moveSendInterval = 1000 / 15;
         
         this.remotePlayers = new Map();
-        
-        socket.on("player-joined", (data) => {
-
-            console.log("PLAYER JOINED DATA:", data);
-            
-            console.log("New player joined:", data.player);
-
-            const remotePlayer = new RemotePlayer(
-                this,
-                data.player
-            );
-
-            this.remotePlayers.set(
-                data.player.id,
-                remotePlayer
-            );
-        });
-
-        socket.on("player-moved", (data) => {
-            const remotePlayer = this.remotePlayers.get(data.playerId);
-
-            if (!remotePlayer) {
-                return;
-            }
-
-            remotePlayer.updatePosition(
-                data.x,
-                data.y
-            );
-        });
-
-
-        socket.on("player-disconnected", (data) => {
-            const remotePlayer = this.remotePlayers.get(data.playerId);
-
-            if (!remotePlayer) {
-                return;
-            }
-
-            remotePlayer.destroy();
-
-            this.remotePlayers.delete(data.playerId);
-        });
-        
-        const gameState = getGameState();
-        
-        console.log("Game state:", gameState);
-
-        console.log(
-            "Existing players:",
-            gameState.existingPlayers
-        );
-        
-        gameState.existingPlayers.forEach((playerData) => {
-            const remotePlayer = new RemotePlayer(this, playerData);
-            
-            this.remotePlayers.set(
-                playerData.id,
-                remotePlayer
-            );
-        });
 
         this.anims.create({
             key: "walk-down",
@@ -183,6 +127,71 @@ export default class GameScene extends Phaser.Scene {
             frameRate: 8,
             repeat: -1
         });
+        
+        socket.on("player-joined", (data) => {
+
+            console.log("PLAYER JOINED DATA:", data);
+            
+            console.log("New player joined:", data.player);
+
+            const remotePlayer = new RemotePlayer(
+                this,
+                data.player
+            );
+
+            this.remotePlayers.set(
+                data.player.id,
+                remotePlayer
+            );
+        });
+
+        socket.on("player-moved", (data) => {
+            console.log(data);
+            const remotePlayer = this.remotePlayers.get(data.playerId);
+
+            if (!remotePlayer) {
+                return;
+            }
+
+            remotePlayer.updatePosition(
+                data.x,
+                data.y,
+                data.moving,
+                data.direction
+            );
+        });
+
+
+        socket.on("player-disconnected", (data) => {
+            const remotePlayer = this.remotePlayers.get(data.playerId);
+
+            if (!remotePlayer) {
+                return;
+            }
+
+            remotePlayer.destroy();
+
+            this.remotePlayers.delete(data.playerId);
+        });
+        
+        const gameState = getGameState();
+        
+        console.log("Game state:", gameState);
+
+        console.log(
+            "Existing players:",
+            gameState.existingPlayers
+        );
+        
+        gameState.existingPlayers.forEach((playerData) => {
+            const remotePlayer = new RemotePlayer(this, playerData);
+            
+            this.remotePlayers.set(
+                playerData.id,
+                remotePlayer
+            );
+        });
+
 
         this.player.setDisplaySize(48, 48);
 
@@ -308,15 +317,19 @@ export default class GameScene extends Phaser.Scene {
                 this.player.anims.stop();
             }
             else if (velocityY < 0) {
+                this.playerDirection = "up";
                 this.player.anims.play("walk-up", true);
             }
             else if (velocityY > 0) {
+                this.playerDirection = "down";
                 this.player.anims.play("walk-down", true);
             }
             else if (velocityX < 0) {
+                this.playerDirection = "left";
                 this.player.anims.play("walk-left", true);
             }
             else if (velocityX > 0) {
+                this.playerDirection = "right";
                 this.player.anims.play("walk-right", true);
             }
 
@@ -325,9 +338,19 @@ export default class GameScene extends Phaser.Scene {
             this.player.y - 32
         );
 
-        socket.emit("player-move", {
-            x: this.player.x,
-            y: this.player.y
-        });
+        const isMoving = velocityX !== 0 || velocityY !== 0;
+
+        const now = performance.now();
+
+        if (now - this.lastMoveSent >= this.moveSendInterval) {
+            socket.emit("player-move", {
+                x: this.player.x,
+                y: this.player.y,
+                moving: isMoving,
+                direction: this.playerDirection
+            });
+
+            this.lastMoveSent = now;
+        }
     }
 }

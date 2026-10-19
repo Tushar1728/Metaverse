@@ -31,11 +31,14 @@ io.on("connection", (socket) => {
 
         player.x = data.x;
         player.y = data.y;
+        player.direction = data.direction;
 
         socket.to(player.roomCode).emit("player-moved", {
             playerId: socket.id,
             x: player.x,
-            y: player.y
+            y: player.y,
+            moving: data.moving,
+            direction: data.direction
         });
     });
 
