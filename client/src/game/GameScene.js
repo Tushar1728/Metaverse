@@ -128,10 +128,7 @@ export default class GameScene extends Phaser.Scene {
             repeat: -1
         });
         
-        socket.on("player-joined", (data) => {
-
-            console.log("PLAYER JOINED DATA:", data);
-            
+        this.handlePlayerJoined = (data) => {
             console.log("New player joined:", data.player);
 
             const remotePlayer = new RemotePlayer(
@@ -143,10 +140,13 @@ export default class GameScene extends Phaser.Scene {
                 data.player.id,
                 remotePlayer
             );
-        });
+        };
 
-        socket.on("player-moved", (data) => {
-            console.log(data);
+        socket.on("player-joined", this.handlePlayerJoined);
+
+        this.handlePlayerMoved = (data) => {
+            console.log("PLAYER MOVED:", data);
+
             const remotePlayer = this.remotePlayers.get(data.playerId);
 
             if (!remotePlayer) {
@@ -159,10 +159,12 @@ export default class GameScene extends Phaser.Scene {
                 data.moving,
                 data.direction
             );
-        });
+        };
+
+        socket.on("player-moved", this.handlePlayerMoved);
 
 
-        socket.on("player-disconnected", (data) => {
+        this.handlePlayerDisconnected = (data) => {
             const remotePlayer = this.remotePlayers.get(data.playerId);
 
             if (!remotePlayer) {
@@ -172,7 +174,12 @@ export default class GameScene extends Phaser.Scene {
             remotePlayer.destroy();
 
             this.remotePlayers.delete(data.playerId);
-        });
+        };
+
+        socket.on(
+            "player-disconnected",
+            this.handlePlayerDisconnected
+        );
         
         const gameState = getGameState();
         
@@ -267,10 +274,27 @@ export default class GameScene extends Phaser.Scene {
 
         this.cameras.main.startFollow(this.player);
 
+        const cleanup = () => {
+            socket.off("player-joined", this.handlePlayerJoined);
+            socket.off("player-moved", this.handlePlayerMoved);
+            socket.off("player-disconnected", this.handlePlayerDisconnected);
+
+            console.log("GameScene socket listeners removed");
+        };
+
+        this.events.once("shutdown", cleanup);
+        this.events.once("destroy", cleanup);
+
     }
 
 
     update() {
+
+        this.remotePlayers.forEach((remotePlayer) => {
+            remotePlayer.update();
+        });
+
+    // your existing movement code...
 
         let velocityX = 0;
         let velocityY = 0;

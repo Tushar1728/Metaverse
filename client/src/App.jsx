@@ -1,6 +1,7 @@
 import { useState } from "react";
 import EntryPage from "./pages/EntryPage.jsx";
 import GameScreen from "./pages/GameScreen.jsx";
+import { socket } from "./network/socket";
 
 function App() {
     const [inGame, setInGame] = useState(false);
@@ -9,7 +10,10 @@ function App() {
         <>
             {inGame ? (
                 <GameScreen
-                    onLeaveWorld={() => setInGame(false)}
+                    onLeaveWorld={() => {
+                        socket.disconnect();
+                        setInGame(false);
+                    }}
                 />
             ) : (
                 <EntryPage

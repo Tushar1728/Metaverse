@@ -11,10 +11,25 @@ export default class RemotePlayer {
         );
 
         this.sprite.setFrame(0);
+
+        // Position received from the server
+        this.targetX = playerData.x;
+        this.targetY = playerData.y;
     }
 
     updatePosition(x, y, moving, direction) {
-        this.sprite.setPosition(x, y);
+
+        // Don't immediately move the sprite.
+        // Store the server position as the target.
+        this.targetX = x;
+        this.targetY = y;
+
+        console.log("REMOTE SPRITE:", this.sprite);
+        console.log("REMOTE ANIMS:", this.sprite.anims);
+
+        console.log("REMOTE PLAYER SCENE:", this.scene);
+        console.log("REMOTE SPRITE SCENE:", this.sprite.scene);
+        console.log("REMOTE SPRITE ANIMS:", this.sprite.anims);
 
         // Player stopped
         if (!moving) {
@@ -49,6 +64,16 @@ export default class RemotePlayer {
         else if (direction === "right") {
             this.sprite.anims.play("walk-right", true);
         }
+    }
+
+    update() {
+        const interpolationSpeed = 0.2;
+
+        this.sprite.x +=
+            (this.targetX - this.sprite.x) * interpolationSpeed;
+
+        this.sprite.y +=
+            (this.targetY - this.sprite.y) * interpolationSpeed;
     }
 
     destroy() {
